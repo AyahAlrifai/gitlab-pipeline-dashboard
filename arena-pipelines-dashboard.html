@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gitlab Pipeline Dashboard</title>
+<style>
+  :root {
+    --bg: #0b0d14;
+    --bg-surface: #111320;
+    --bg-elevated: #181b2e;
+    --bg-hover: #1e2138;
+    --border: #262a45;
+    --border-subtle: #1a1d33;
+    --fg: #e2e4f0;
+    --fg-secondary: #8b91b0;
+    --fg-muted: #5a6080;
+    --accent: #08c1b8;
+    --accent-hover: #0dd8ce;
+    --accent-glow: rgba(8, 193, 184, 0.15);
+    --accent-glow-strong: rgba(8, 193, 184, 0.25);
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --green: #22c55e;
+    --green-bg: rgba(34, 197, 94, 0.12);
+    --green-glow: rgba(34, 197, 94, 0.25);
+    --red: #ef4444;
+    --red-bg: rgba(239, 68, 68, 0.12);
+    --red-glow: rgba(239, 68, 68, 0.25);
+    --yellow: #eab308;
+    --yellow-bg: rgba(234, 179, 8, 0.12);
+    --yellow-glow: rgba(234, 179, 8, 0.25);
+    --blue: #3b82f6;
+    --blue-bg: rgba(59, 130, 246, 0.12);
+    --blue-glow: rgba(59, 130, 246, 0.25);
+    --gray: #6b7280;
+    --gray-bg: rgba(107, 114, 128, 0.12);
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+    --transition: all 0.2s ease;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+
+  /* ── Header ── */
+  header { background: var(--bg-surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0; }
+  header h1 { margin: 0; font-size: 18px; font-weight: 700; color: var(--fg); letter-spacing: -0.3px; }
+  header h1::before { content: '◆'; color: var(--accent); margin-right: 10px; font-size: 14px; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .header-actions .btn { padding: 6px 14px; font-size: 13px; }
+  .last-updated { color: var(--fg-muted); font-size: 12px; }
+
+  /* ── Buttons ── */
+  .btn { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--fg-secondary); padding: 7px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; font-weight: 500; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { background: var(--bg-hover); color: var(--fg); border-color: var(--fg-muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #0b0d14; font-weight: 700; box-shadow: 0 0 0 3px var(--accent-glow); }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); box-shadow: 0 0 0 4px var(--accent-glow); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.sm { padding: 4px 10px; font-size: 11px; }
+  .btn.ghost { background: transparent; border-color: transparent; }
+  .btn.ghost:hover { background: var(--bg-hover); }
+
+  /* ── Toggle Switch ── */
+  .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--fg-secondary); font-weight: 500; }
+  .toggle input { display: none; }
+  .toggle .switch { width: 38px; height: 22px; background: var(--border); border-radius: 11px; position: relative; transition: var(--transition); }
+  .toggle .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--fg-secondary); transition: var(--transition); box-shadow: var(--shadow-sm); }
+  .toggle input:checked + .switch { background: var(--accent); }
+  .toggle input:checked + .switch::after { transform: translateX(16px); background: #fff; }
+
+  /* ── Settings Panel ── */
+  .settings-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin: 16px 24px; padding: 20px; animation: slideDown 0.2s ease; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .settings-panel label { display: block; font-size: 12px; font-weight: 600; color: var(--fg-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .settings-panel input, .settings-panel textarea { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--fg); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 13px; transition: var(--transition); }
+  .settings-panel input:focus, .settings-panel textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .settings-panel textarea { max-height: 220px; overflow-y: auto; resize: vertical; font-family: var(--font); line-height: 1.6; }
+  .settings-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .settings-row > div { flex: 1; min-width: 260px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 2px; padding: 0 24px; background: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .tab { padding: 12px 20px; border: none; background: transparent; color: var(--fg-muted); font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: var(--transition); }
+  .tab:hover { color: var(--fg-secondary); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab .count { display: inline-block; margin-left: 6px; padding: 1px 6px; background: var(--bg-hover); border-radius: 10px; font-size: 10px; font-weight: 700; color: var(--fg-secondary); }
+  .tab.active .count { background: var(--accent-glow); color: var(--accent); }
+
+  /* ── Filters ── */
+  .filters-bar { display: flex; gap: 10px; padding: 12px 24px; align-items: center; flex-wrap: wrap; flex-shrink: 0; background: var(--bg); border-bottom: 1px solid var(--border-subtle); }
+  .filters-bar input, .filters-bar select { background: var(--bg-surface); border: 1px solid var(--border); color: var(--fg); padding: 7px 12px; border-radius: var(--radius-sm); font-size: 13px; transition: var(--transition); min-width: 160px; }
+  .filters-bar input:focus, .filters-bar select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .filters-bar input { width: 220px; }
+  .filters-bar input::placeholder { color: var(--fg-muted); }
+
+  /* ── Pipeline Toolbar ── */
+  .pipeline-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px 12px; flex-shrink: 0; }
+  .pipeline-toolbar-left { display: flex; align-items: center; gap: 10px; }
+  .pipeline-toolbar-right { display: flex; align-items: center; gap: 10px; color: var(--fg-muted); font-size: 12px; }
+
+  /* ── Main Content ── */
+  .main { flex: 1; overflow: auto; padding: 0 24px 20px; }
+  .main::-webkit-scrollbar { width: 8px; height: 8px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .main::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+
+  /* ── Table Card ── */
+  .table-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; z-index: 5; }
+  thead th { background: var(--bg-elevated); color: var(--fg-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap; transition: var(--transition); }
+  thead th:hover { color: var(--fg); background: var(--bg-hover); }
+  thead th .sort-arrow { color: var(--accent); margin-left: 6px; font-size: 10px; }
+  tbody tr { border-bottom: 1px solid var(--border-subtle); transition: var(--transition); }
+  tbody tr:hover { background: var(--bg-hover); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr.expanded { background: var(--bg-hover); }
+  td { padding: 12px 16px; vertical-align: middle; }
+  td a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  td a:hover { text-decoration: underline; }
+  td code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--fg-secondary); }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; border: 1px solid transparent; }
+  .badge::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+  .badge.running { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-glow); }
+  .badge.running::before { background: var(--blue); animation: pulse-dot 1.5s infinite; }
+  .badge.success { background: var(--green-bg); color: var(--green); border-color: var(--green-glow); }
+  .badge.success::before { background: var(--green); }
+  .badge.failed { background: var(--red-bg); color: var(--red); border-color: var(--red-glow); }
+  .badge.failed::before { background: var(--red); }
+  .badge.pending { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-glow); }
+  .badge.pending::before { background: var(--yellow); }
+  .badge.canceled { background: var(--gray-bg); color: var(--gray); border-color: var(--border); }
+  .badge.canceled::before { background: var(--gray); }
+  .badge.skipped { background: var(--gray-bg); color: var(--gray); border-color: var(--border); }
+  .badge.skipped::before { background: var(--gray); }
+  .badge.created { background: var(--gray-bg); color: var(--gray); border-color: var(--border); }
+  .badge.created::before { background: var(--gray); }
+  .badge.warning { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-glow); }
+  .badge.warning::before { background: var(--yellow); }
+  @keyframes pulse-dot { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 var(--blue-glow); } 50% { opacity: 0.6; box-shadow: 0 0 0 4px var(--blue-glow); } }
+
+  /* ── Empty States ── */
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 40px; text-align: center; }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+  .empty h3 { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: var(--fg); }
+  .empty p { margin: 0; font-size: 13px; color: var(--fg-muted); max-width: 320px; }
+  .empty .btn { margin-top: 20px; }
+
+  /* ── Loading ── */
+  .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .loading-spinner.lg { width: 36px; height: 36px; border-width: 3px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px; color: var(--fg-muted); font-size: 13px; }
+  .loading-full { flex-direction: column; gap: 16px; padding: 100px 40px; }
+  .loading-full p { margin: 0; font-size: 13px; color: var(--fg-muted); }
+
+  /* ── CORS Warning ── */
+  .cors-warning { background: var(--yellow-bg); border: 1px solid var(--yellow); color: var(--yellow); padding: 12px 16px; border-radius: var(--radius-sm); margin: 0 0 16px; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+  .cors-warning::before { content: '⚠'; font-size: 16px; }
+
+  /* ── Jobs Panel ── */
+  .jobs-row td { padding: 0; background: var(--bg); }
+  .jobs-panel { padding: 16px 20px; }
+  .jobs-table { width: 100%; border-collapse: collapse; font-size: 12px; border-radius: var(--radius-sm); overflow: hidden; }
+  .jobs-table thead th { background: var(--bg-elevated); padding: 8px 12px; font-size: 10px; }
+  .jobs-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-subtle); }
+  .jobs-table tr:last-child td { border-bottom: none; }
+  .job-stage { color: var(--fg-muted); font-size: 11px; font-weight: 600; }
+  .job-duration { color: var(--fg-muted); font-size: 11px; }
+  .job-progress { display: flex; align-items: center; gap: 8px; }
+  .progress-bar { width: 100px; height: 5px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .progress-fill.success { background: var(--green); }
+  .progress-fill.running { background: var(--blue); animation: pulse-bar 1.5s infinite; }
+  .progress-fill.failed { background: var(--red); }
+  .progress-fill.pending { background: var(--yellow); }
+  @keyframes pulse-bar { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .chevron { display: inline-block; transition: transform 0.2s; font-size: 10px; color: var(--fg-muted); }
+  .chevron.open { transform: rotate(90deg); }
+
+  /* ── Rerun Table ── */
+  .rerun-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rerun-table thead th { background: var(--bg-elevated); color: var(--fg-secondary); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .rerun-table tbody tr { border-bottom: 1px solid var(--border-subtle); transition: var(--transition); position: relative; }
+  .rerun-table tbody tr:hover { background: var(--bg-hover); }
+  .rerun-table tbody tr:hover .rerun-btn { opacity: 1; visibility: visible; }
+  .rerun-table td { padding: 12px 16px; vertical-align: middle; color: var(--fg); }
+  .rerun-table td.branch-cell { color: var(--fg-muted); font-size: 12px; }
+  .rerun-btn { opacity: 0.55; transition: var(--transition); padding: 4px 12px; font-size: 11px; background: transparent; border: 1px solid var(--border); color: var(--accent); border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; }
+  .rerun-table tbody tr:hover .rerun-btn { opacity: 1; background: var(--accent-glow); border-color: var(--accent); }
+
+  /* ── Dialog ── */
+  .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.15s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .dialog { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; min-width: 360px; max-width: 90vw; box-shadow: var(--shadow-lg); animation: scaleIn 0.2s ease; }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  .dialog h3 { margin: 0 0 20px; font-size: 18px; font-weight: 700; color: var(--fg); }
+  .dialog .dialog-row { margin-bottom: 16px; }
+  .dialog label { display: block; font-size: 12px; font-weight: 600; color: var(--fg-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .dialog select, .dialog input { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--fg); padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; transition: var(--transition); }
+  .dialog select:focus, .dialog input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .dialog .dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+  .dialog .dialog-actions .btn { padding: 8px 16px; }
+  .dialog .hidden { display: none; }
+
+  /* ── Help Modal ── */
+  .help-modal .dialog { max-width: 640px; min-width: 320px; max-height: 80vh; overflow-y: auto; }
+  .help-modal h4 { margin: 20px 0 8px; font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+  .help-modal p, .help-modal li { font-size: 13px; color: var(--fg-secondary); line-height: 1.6; margin: 0 0 8px; }
+  .help-modal ul { margin: 0 0 12px 16px; padding: 0; }
+  .help-modal li { margin-bottom: 4px; }
+  .help-modal code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; color: var(--fg); border: 1px solid var(--border); }
+
+  /* ── Toast ── */
+  .toast-container { position: fixed; top: 16px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+  .toast { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; min-width: 260px; max-width: 380px; box-shadow: var(--shadow-lg); font-size: 13px; color: var(--fg); display: flex; align-items: center; gap: 10px; animation: toastIn 0.25s ease, toastOut 0.25s ease 2.75s; pointer-events: auto; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+  .toast.warn { border-left: 3px solid var(--yellow); }
+  .toast-icon { font-size: 16px; flex-shrink: 0; }
+  .toast-msg { flex: 1; line-height: 1.4; }
+  .toast-close { background: transparent; border: none; color: var(--fg-muted); cursor: pointer; font-size: 14px; padding: 0 0 0 4px; line-height: 1; }
+  .toast-close:hover { color: var(--fg); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(20px); } }
+
+  /* ── Layout ── */
+  .app { display: flex; flex-direction: column; height: 100vh; }
+  .hidden { display: none !important; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    header { padding: 10px 16px; }
+    header h1 { font-size: 15px; }
+    .tabs { padding: 0 16px; }
+    .filters-bar { padding: 10px 16px; }
+    .pipeline-toolbar { padding: 0 16px 10px; }
+    .main { padding: 0 16px 12px; }
+    .settings-panel { margin: 12px 16px; padding: 14px; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <h1>GitLab Pipeline Dashboard</h1>
+      <span style="color:var(--fg-muted);font-size:12px;border-left:1px solid var(--border);padding-left:12px;white-space:nowrap;">
+        by <strong style="color:var(--accent);">Eng. Ayah Refai</strong> · ayah.refai@digitinary.com
+      </span>
+    </div>
+    <div class="header-actions">
+      <button class="btn ghost" id="btnHelp" title="How to use">? Help</button>
+      <button class="btn ghost" id="btnSettings">⚙ Settings</button>
+    </div>
+  </header>
+
+  <div id="settingsPanel" class="settings-panel hidden">
+    <div class="settings-row">
+      <div>
+        <label>GitLab Base URL</label>
+        <input type="text" id="gitlabUrl" placeholder="https://gitlab.com" value="https://gitlab.digi.internal" />
+      </div>
+      <div>
+        <label>Personal Access Token</label>
+        <input type="password" id="gitlabToken" placeholder="glpat-..." />
+      </div>
+    </div>
+    <label>Projects (one per line: namespace/project or numeric ID)</label>
+    <textarea id="projectsList" rows="8" placeholder="arena/arena-demo-microservice
+561
+arena/arena-edge-ms"></textarea>
+    <div style="display:flex; gap:10px;">
+      <button class="btn primary" onclick="saveAndLoad()">Save & Load</button>
+      <button class="btn" onclick="resetProjects()">Reset Defaults</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabsNav">
+    <button class="tab active" onclick="switchTab('pipelines')" data-tab="pipelines">Pipelines</button>
+    <button class="tab" onclick="switchTab('rerun')" data-tab="rerun">Rerun</button>
+  </div>
+
+  <div class="filters-bar">
+    <select id="statusFilter" onchange="render()">
+      <option value="all">All Statuses</option>
+      <option value="running">Running</option>
+      <option value="pending">Pending</option>
+      <option value="failed">Failed</option>
+      <option value="success">Success</option>
+      <option value="canceled">Canceled</option>
+      <option value="skipped">Skipped</option>
+    </select>
+    <input type="text" id="searchFilter" placeholder="Search project or branch..." oninput="render()" />
+  </div>
+
+  <div class="main">
+    <div id="corsNotice" class="cors-warning hidden"></div>
+
+    <div id="rerunDialog" class="dialog-overlay hidden">
+      <div class="dialog">
+        <h3>🚀 Trigger Pipeline</h3>
+        <div class="dialog-row">
+          <label>Project</label>
+          <input type="text" id="dialogProject" readonly />
+        </div>
+        <div class="dialog-row">
+          <label>Branch</label>
+          <select id="dialogBranch" onchange="onDialogBranchChange()">
+            <option value="">-- select branch --</option>
+          </select>
+        </div>
+        <div class="dialog-row hidden" id="dialogOtherRow">
+          <label>Custom Branch</label>
+          <input type="text" id="dialogOtherBranch" placeholder="e.g. feature/ARN-1234" />
+        </div>
+        <div class="dialog-actions">
+          <button class="btn" onclick="closeRerunDialog()">Cancel</button>
+          <button class="btn primary" onclick="confirmRerun()">Trigger</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="helpModal" class="dialog-overlay help-modal hidden">
+      <div class="dialog">
+        <h3>📖 How to Use</h3>
+        <h4>What is this?</h4>
+        <p>A single-page dashboard that aggregates GitLab pipelines from multiple projects into one view. No more clicking through every project in GitLab to see pipeline health.</p>
+
+        <h4>Quick start</h4>
+        <ul>
+          <li>Click <strong>⚙ Settings</strong> in the top right.</li>
+          <li>Enter your <code>GitLab Base URL</code> (e.g. <code>https://gitlab.digi.internal</code>).</li>
+          <li>Enter a <code>Personal Access Token</code> with <strong>api</strong> scope.</li>
+          <li>The project list is pre-filled with all Arena services. Click <strong>Save & Load</strong>.</li>
+        </ul>
+
+        <h4>Tabs</h4>
+        <ul>
+          <li><strong>Pipelines</strong> — live table of all pipelines with status, branch, duration, and expandable jobs.</li>
+          <li><strong>Rerun</strong> — trigger a new pipeline for any project. Select an existing branch or type a custom one.</li>
+        </ul>
+
+        <h4>Features</h4>
+        <ul>
+          <li>Filter by status (Running / Failed / Success / …) and search by project or branch.</li>
+          <li>Sort by any column (click the header).</li>
+          <li>Auto-refresh every 30 seconds (toggle next to Refresh).</li>
+          <li>Jobs panel shows stage breakdown, per-job status, and a progress bar. Allowed-to-fail jobs (e.g. SonarQube) show as <strong>warning</strong> instead of failed.</li>
+        </ul>
+
+        <h4>Token & security</h4>
+        <p>Your settings (URL, token, and project list) are saved in <strong>localStorage</strong> so they persist after page refresh. The token is only used in direct browser API calls to GitLab — it is never sent to any other server.</p>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><strong>CORS error</strong> — If you get CORS blocked, ensure your self-managed GitLab allows cross-origin requests with the <code>PRIVATE-TOKEN</code> header.</li>
+          <li><strong>404 / 403</strong> — Check that your token has <strong>api</strong> scope and that you have access to the listed projects.</li>
+        </ul>
+
+        <div class="dialog-actions">
+          <button class="btn" onclick="closeHelpModal()">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="table-card" id="tableContainer">
+      <div class="loading-overlay loading-full" id="initialLoader">
+        <div class="loading-spinner lg"></div>
+        <p>Loading pipelines...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_PROJECTS = [
+  "arena/arena-admin-microservice", "arena/arena-artificial-intelligence-ms", "arena/arena-audit-trail-microservice", "arena/arena-c360-microservice", "arena/arena-custom-workflows", "arena/arena-customer-complaints-ms",
+  "arena/arena-customer-transactions-ms", "arena/arena-demo-microservice", "arena/arena-digitinary-lead-ms", "arena/arena-edge-ms", "arena/arena-human-resources-ms", "arena/arena-keycloak-spis", "arena/arena-knowledge-base-ms",
+  "arena/arena-license-management-ms", "arena/arena-loan-microservice", "arena/arena-notifications-ms", "arena/arena-reporting-ms", "arena/arena-service-request-management-ms", "arena/arena-trade-finance-ms",
+  "arena/arena-user-management-ms", "arena/arena-workflow-management-ms", "digi-libs/digi-bom", "digi-libs/digi-common", "digi-libs/digi-encryption-core", "digi-libs/digi-encryption-spring-boot-starter",
+  "digi-libs/digi-enterprise-adapter", "digi-libs/digi-license-core", "digi-libs/digi-license-generator", "digi-libs/digi-license-spring-boot-starter", "digi-libs/digi-logger", "digi-libs/digi-sandbox-microservice",
+  "digi/digitinary-products-helm-charts", "arena/ebp-common", "arena/ebp-parent", "arena/keycloak", "arena/shamil-ai-workspace"
+];
+
+let pipelines = [], errors = [], sortKey = 'createdAt', sortDesc = true, autoRefreshTimer = null, isLoading = false, corsBlocked = false;
+let expandedPipelines = new Set();
+let jobsCache = {};
+let currentTab = 'pipelines';
+let dialogProject = null;
+let autoRefreshEnabled = false;
+const el = id => document.getElementById(id);
+
+function init() {
+  el('btnSettings').addEventListener('click', () => el('settingsPanel').classList.toggle('hidden'));
+  el('btnHelp').addEventListener('click', () => el('helpModal').classList.remove('hidden'));
+  el('statusFilter').addEventListener('change', saveSettings);
+  loadSettings();
+  if (!el('projectsList').value) el('projectsList').value = DEFAULT_PROJECTS.join('\n');
+}
+function resetProjects() { el('projectsList').value = DEFAULT_PROJECTS.join('\n'); }
+function saveAndLoad() { saveSettings(); refresh(); el('settingsPanel').classList.add('hidden'); }
+
+function loadSettings() {
+  try {
+    const savedUrl = localStorage.getItem('gitlab_dashboard_url');
+    const savedToken = localStorage.getItem('gitlab_dashboard_token');
+    const savedProjects = localStorage.getItem('gitlab_dashboard_projects');
+    const savedFilter = localStorage.getItem('gitlab_dashboard_filter');
+    const savedAutoRefresh = localStorage.getItem('gitlab_dashboard_autorefresh');
+    if (savedUrl) el('gitlabUrl').value = savedUrl;
+    if (savedToken) el('gitlabToken').value = savedToken;
+    if (savedProjects) el('projectsList').value = savedProjects;
+    if (savedFilter) el('statusFilter').value = savedFilter;
+    if (savedAutoRefresh !== null) autoRefreshEnabled = savedAutoRefresh === 'true';
+    if (savedToken && el('projectsList').value.trim() && el('gitlabUrl').value.trim()) {
+      refresh();
+    }
+  } catch (e) { /* ignore localStorage errors */ }
+}
+function saveSettings() {
+  try {
+    localStorage.setItem('gitlab_dashboard_url', el('gitlabUrl').value.trim());
+    localStorage.setItem('gitlab_dashboard_token', el('gitlabToken').value.trim());
+    localStorage.setItem('gitlab_dashboard_projects', el('projectsList').value.trim());
+    localStorage.setItem('gitlab_dashboard_filter', el('statusFilter').value);
+    localStorage.setItem('gitlab_dashboard_autorefresh', autoRefreshEnabled);
+  } catch (e) { /* ignore localStorage errors */ }
+}
+
+async function refresh() {
+  if (isLoading) return;
+  const url = el('gitlabUrl').value.trim().replace(/\/$/, '');
+  const token = el('gitlabToken').value.trim();
+  const rawProjects = el('projectsList').value.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+  if (!url || !token || rawProjects.length === 0) { return; }
+
+  setLoading(true); corsBlocked = false; el('corsNotice').classList.add('hidden');
+  expandedPipelines.clear(); jobsCache = {};
+
+  const results = await Promise.all(rawProjects.map(async (proj) => {
+    const encoded = encodeURIComponent(proj);
+    const apiUrl = `${url}/api/v4/projects/${encoded}/pipelines?per_page=20`;
+    try {
+      const res = await fetch(apiUrl, { method: 'GET', headers: { 'PRIVATE-TOKEN': token } });
+      if (!res.ok) { const body = await res.text(); return { project: proj, error: `${res.status}: ${body || res.statusText}` }; }
+      const data = await res.json();
+      return { project: proj, data };
+    } catch (err) { if (err.name === 'TypeError' && err.message.includes('CORS')) corsBlocked = true; return { project: proj, error: err.message }; }
+  }));
+
+  pipelines = []; errors = [];
+  results.forEach(r => {
+    if (r.error) errors.push({ project: r.project, error: r.error });
+    else if (Array.isArray(r.data)) r.data.forEach(p => {
+      pipelines.push({ project: r.project, id: p.id, status: p.status, ref: p.ref, source: p.source, createdAt: p.created_at, updatedAt: p.updated_at, webUrl: p.web_url, duration: p.duration });
+    });
+  });
+
+  if (corsBlocked) { el('corsNotice').textContent = ' CORS blocked some requests. If using a self-managed GitLab, ensure the server allows cross-origin requests with the PRIVATE-TOKEN header. On gitlab.com, a valid token with api scope should work from the browser.'; el('corsNotice').classList.remove('hidden'); }
+  setLoading(false); updateLastUpdated(); render();
+}
+
+function setLoading(v) {
+  isLoading = v;
+  const label = el('refreshLabel');
+  const spin = el('refreshSpinner');
+  if (v) { if (label) label.classList.add('hidden'); if (spin) spin.classList.remove('hidden'); }
+  else { if (label) label.classList.remove('hidden'); if (spin) spin.classList.add('hidden'); }
+}
+function updateLastUpdated() { const elLU = document.getElementById('lastUpdated'); if (elLU) elLU.textContent = 'Updated ' + new Date().toLocaleTimeString(); }
+
+async function toggleJobs(pipelineId) {
+  if (expandedPipelines.has(pipelineId)) {
+    expandedPipelines.delete(pipelineId); render(); return;
+  }
+  expandedPipelines.add(pipelineId);
+  jobsCache[pipelineId] = { loading: true, jobs: [], error: null };
+  render();
+
+  const pipeline = pipelines.find(p => p.id === pipelineId);
+  if (!pipeline) { jobsCache[pipelineId] = { loading: false, jobs: [], error: 'Pipeline not found' }; render(); return; }
+
+  const url = el('gitlabUrl').value.trim().replace(/\/$/, '');
+  const token = el('gitlabToken').value.trim();
+  const encoded = encodeURIComponent(pipeline.project);
+  try {
+    const res = await fetch(`${url}/api/v4/projects/${encoded}/pipelines/${pipelineId}/jobs?per_page=100`, { method: 'GET', headers: { 'PRIVATE-TOKEN': token } });
+    if (!res.ok) { const body = await res.text(); jobsCache[pipelineId] = { loading: false, jobs: [], error: `${res.status}: ${body || res.statusText}` }; }
+    else { const data = await res.json(); jobsCache[pipelineId] = { loading: false, jobs: data, error: null }; }
+  } catch (err) { jobsCache[pipelineId] = { loading: false, jobs: [], error: err.message }; }
+  render();
+}
+
+function render() {
+  const container = el('tableContainer');
+  if (currentTab === 'rerun') { renderRerunTab(); return; }
+
+  const statusFilter = el('statusFilter').value;
+  const search = el('searchFilter').value.toLowerCase();
+
+  if (isLoading && pipelines.length === 0) {
+    container.innerHTML = `<div class="loading-overlay loading-full"><div class="loading-spinner lg"></div><p>Loading pipelines...</p></div>`; return;
+  }
+
+  let rows = pipelines.filter(p => {
+    if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+    if (search) { const hay = (p.project + ' ' + p.ref).toLowerCase(); if (!hay.includes(search)) return false; }
+    return true;
+  });
+  rows.sort((a, b) => {
+    let va = a[sortKey], vb = b[sortKey]; if (va == null) va = ''; if (vb == null) vb = '';
+    if (typeof va === 'string') va = va.toLowerCase(); if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sortDesc ? 1 : -1; if (va > vb) return sortDesc ? -1 : 1; return 0;
+  });
+
+  // Build toolbar
+  const toolbarHtml = `<div class="pipeline-toolbar">
+    <div class="pipeline-toolbar-left">
+      <button class="btn" id="btnRefresh" onclick="refresh()">
+        <span id="refreshLabel">↻ Refresh</span>
+        <span id="refreshSpinner" class="loading-spinner hidden"></span>
+      </button>
+      <label class="toggle">
+        <input type="checkbox" id="autoRefresh" ${autoRefreshEnabled ? 'checked' : ''} onchange="toggleAutoRefresh()" />
+        <span class="switch"></span>
+        <span style="font-size:12px;">Auto</span>
+      </label>
+    </div>
+    <div class="pipeline-toolbar-right">
+      <span class="last-updated" id="lastUpdated">Never updated</span>
+    </div>
+  </div>`;
+
+  if (pipelines.length === 0 && errors.length === 0 && !isLoading) {
+    container.innerHTML = toolbarHtml + `<div class="empty"><div class="empty-icon">📊</div><h3>No Pipelines Found</h3><p>Check your token and project list, then click Save & Load.</p></div>`; return;
+  }
+  if (rows.length === 0 && !isLoading) {
+    container.innerHTML = toolbarHtml + `<div class="empty"><div class="empty-icon">🔍</div><h3>No Matching Results</h3><p>Adjust your filters or search term.</p></div>`; return;
+  }
+
+  const th = (key, label) => { const arrow = sortKey === key ? (sortDesc ? '▼' : '▲') : ''; return `<th onclick="setSort('${key}')">${label} <span class="sort-arrow">${arrow}</span></th>`; };
+  const errorRows = errors.length > 0 ? `<tr><td colspan="9" style="padding:0;"><div style="padding:10px 16px;background:var(--red-bg);color:var(--red);font-size:12px;border-bottom:1px solid var(--border);">${errors.map(e => `<div style="margin:2px 0;"><strong>${e.project}:</strong> ${e.error}</div>`).join('')}</div></td></tr>` : '';
+
+  const tableHtml = `<table>
+    <thead><tr>
+      ${th('project', 'Project')}
+      ${th('id', 'Pipeline')}
+      ${th('status', 'Status')}
+      ${th('ref', 'Branch')}
+      ${th('source', 'Source')}
+      ${th('createdAt', 'Created')}
+      ${th('duration', 'Duration')}
+      <th>Jobs</th>
+      <th>Link</th>
+    </tr></thead>
+    <tbody>
+      ${errorRows}
+      ${rows.map(p => renderPipelineRow(p)).join('')}
+    </tbody>
+  </table>`;
+  container.innerHTML = toolbarHtml + tableHtml;
+  updateLastUpdated();
+}
+
+function toggleAutoRefresh() {
+  autoRefreshEnabled = !autoRefreshEnabled;
+  saveSettings();
+  if (autoRefreshEnabled) autoRefreshTimer = setInterval(refresh, 30000);
+  else { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+}
+
+function renderRerunTab() {
+  const container = el('tableContainer');
+  if (pipelines.length === 0 && errors.length === 0 && !isLoading) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">🚀</div><h3>No Data Loaded</h3><p>Load pipelines first to see rerun options.</p></div>`; return;
+  }
+
+  const search = el('searchFilter').value.toLowerCase();
+  const seen = new Set();
+  const projects = [];
+  pipelines.forEach(p => {
+    if (search && !p.project.toLowerCase().includes(search)) return;
+    if (!seen.has(p.project)) { seen.add(p.project); projects.push(p.project); }
+  });
+  projects.sort();
+
+  if (projects.length === 0) { container.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>No Matching Projects</h3></div>`; return; }
+
+  const html = `<div class="table-card">
+    <table class="rerun-table">
+      <thead><tr>
+        <th style="width:45%">Project</th>
+        <th style="width:30%">Branches</th>
+        <th style="width:25%">Action</th>
+      </tr></thead>
+      <tbody>
+        ${projects.map(proj => {
+          const branches = [...new Set(pipelines.filter(p => p.project === proj).map(p => p.ref))].sort();
+          const branchText = branches.slice(0, 3).join(', ') + (branches.length > 3 ? ` +${branches.length - 3} more` : '');
+          return `<tr>
+            <td style="font-weight:500;">${esc(proj)}</td>
+            <td class="branch-cell">${esc(branchText)}</td>
+            <td><button class="rerun-btn" onclick="openRerunDialog('${esc(proj)}')">Run</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+  container.innerHTML = html;
+}
+
+function openRerunDialog(project) {
+  dialogProject = project;
+  el('dialogProject').value = project;
+  const branches = [...new Set(pipelines.filter(p => p.project === project).map(p => p.ref))].sort();
+  const select = el('dialogBranch');
+  select.innerHTML = `<option value="">-- select branch --</option>`
+    + branches.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('')
+    + `<option value="__other__">Custom branch...</option>`;
+  el('dialogOtherBranch').value = '';
+  el('dialogOtherRow').classList.add('hidden');
+  el('rerunDialog').classList.remove('hidden');
+}
+
+function onDialogBranchChange() {
+  const val = el('dialogBranch').value;
+  el('dialogOtherRow').classList.toggle('hidden', val !== '__other__');
+}
+
+function closeRerunDialog() {
+  el('rerunDialog').classList.add('hidden');
+  dialogProject = null;
+}
+
+function closeHelpModal() {
+  el('helpModal').classList.add('hidden');
+}
+
+async function confirmRerun() {
+  const branch = el('dialogBranch').value;
+  const ref = branch === '__other__' ? el('dialogOtherBranch').value.trim() : branch;
+  if (!ref) { toast('Please select or enter a branch', 'warn'); return; }
+  if (!dialogProject) return;
+
+  const project = dialogProject;
+  closeRerunDialog();
+
+  const url = el('gitlabUrl').value.trim().replace(/\/$/, '');
+  const token = el('gitlabToken').value.trim();
+  if (!url || !token) { toast('GitLab URL and token required', 'error'); return; }
+
+  const encoded = encodeURIComponent(project);
+  try {
+    const res = await fetch(`${url}/api/v4/projects/${encoded}/pipeline?ref=${encodeURIComponent(ref)}`, {
+      method: 'POST', headers: { 'PRIVATE-TOKEN': token, 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) { const body = await res.text(); toast('Failed: ' + (body || res.statusText), 'error'); }
+    else { toast(`Pipeline triggered for ${project} on ${ref}`, 'success'); refresh(); }
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+function renderPipelineRow(p) {
+  const statusClass = p.status === 'running' ? 'running pulse' : p.status;
+  const statusLabel = p.status === 'created' ? 'pending' : p.status;
+  const created = new Date(p.createdAt).toLocaleString();
+  const dur = p.duration != null ? fmtDuration(p.duration) : '-';
+  const isExpanded = expandedPipelines.has(p.id);
+  const jobInfo = jobsCache[p.id];
+
+  let jobSummary = '';
+  if (jobInfo && !jobInfo.loading && !jobInfo.error && jobInfo.jobs.length > 0) {
+    const completed = jobInfo.jobs.filter(j => ['success', 'failed', 'canceled', 'skipped'].includes(j.status)).length;
+    jobSummary = `<span style="color:var(--fg-muted);font-size:11px;margin-left:4px;">${completed}/${jobInfo.jobs.length}</span>`;
+  }
+
+  let row = `<tr class="${isExpanded ? 'expanded' : ''}">
+    <td style="font-weight:500;">${p.project}</td>
+    <td><span style="color:var(--fg-muted);font-family:monospace;font-size:12px;">#${p.id}</span></td>
+    <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+    <td><code>${esc(p.ref || '-')}</code></td>
+    <td style="color:var(--fg-muted);font-size:12px;">${esc(p.source || '-')}</td>
+    <td style="color:var(--fg-muted);font-size:12px;">${esc(created)}</td>
+    <td style="color:var(--fg-muted);font-size:12px;">${dur}</td>
+    <td>
+      <button class="btn sm" onclick="toggleJobs(${p.id})">
+        <span class="chevron ${isExpanded ? 'open' : ''}">▶</span>
+        Jobs${jobSummary}
+      </button>
+    </td>
+    <td><a href="${esc(p.webUrl || '#')}" target="_blank" rel="noopener">View →</a></td>
+  </tr>`;
+
+  if (isExpanded) {
+    row += `<tr class="jobs-row"><td colspan="9">
+      <div class="jobs-panel">${renderJobsPanel(p.id)}</div>
+    </td></tr>`;
+  }
+  return row;
+}
+
+function renderJobsPanel(pipelineId) {
+  const info = jobsCache[pipelineId];
+  if (!info) return '';
+  if (info.loading) return '<div class="loading-overlay"><span class="loading-spinner"></span> Loading jobs...</div>';
+  if (info.error) return `<div style="padding:12px;color:var(--red);font-size:12px;"><strong>Error:</strong> ${esc(info.error)}</div>`;
+  if (info.jobs.length === 0) return '<div style="padding:12px;color:var(--fg-muted);font-size:12px;">No jobs found for this pipeline.</div>';
+
+  const stages = {};
+  info.jobs.forEach(j => { if (!stages[j.stage]) stages[j.stage] = []; stages[j.stage].push(j); });
+  const stageNames = Object.keys(stages);
+
+  let html = '<table class="jobs-table"><thead><tr><th>Stage</th><th>Job</th><th>Status</th><th>Duration</th><th>Progress</th></tr></thead><tbody>';
+  stageNames.forEach(stage => {
+    const jobs = stages[stage];
+    const completedInStage = jobs.filter(jj => ['success', 'failed', 'canceled', 'skipped'].includes(jj.status)).length;
+    const progress = jobs.length > 0 ? Math.round((completedInStage / jobs.length) * 100) : 0;
+    jobs.forEach((j, i) => {
+      const isWarning = j.status === 'failed' && j.allow_failure === true;
+      const displayStatus = isWarning ? 'warning' : j.status;
+      const jobStatus = j.status === 'running' ? 'running pulse' : displayStatus;
+      const jobLabel = j.status === 'created' ? 'pending' : (isWarning ? 'warning' : j.status);
+      const duration = j.duration != null ? fmtDuration(j.duration) : (j.started_at ? 'In progress' : '-');
+      const progressColor = isWarning ? 'pending' : j.status === 'failed' ? 'failed' : j.status === 'running' ? 'running' : j.status === 'pending' || j.status === 'created' ? 'pending' : 'success';
+      html += `<tr>
+        <td>${i === 0 ? `<span class="job-stage">${esc(stage)}</span>` : ''}</td>
+        <td style="font-weight:500;">${esc(j.name)}</td>
+        <td><span class="badge ${jobStatus}">${jobLabel}</span></td>
+        <td class="job-duration">${duration}</td>
+        <td>
+          <div class="job-progress">
+            <div class="progress-bar"><div class="progress-fill ${progressColor}" style="width:${progress}%"></div></div>
+            <span style="font-size:11px;color:var(--fg-muted);min-width:28px;">${progress}%</span>
+          </div>
+        </td>
+      </tr>`;
+    });
+  });
+  html += '</tbody></table>';
+
+  const total = info.jobs.length;
+  const completed = info.jobs.filter(j => ['success', 'failed', 'canceled', 'skipped'].includes(j.status)).length;
+  const running = info.jobs.filter(j => j.status === 'running').length;
+  const failed = info.jobs.filter(j => j.status === 'failed' && j.allow_failure !== true).length;
+  html += `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle);font-size:12px;color:var(--fg-muted);display:flex;gap:20px;">
+    <span><strong style="color:var(--fg);">${total}</strong> total</span>
+    <span><strong style="color:var(--green);">${completed}</strong> completed</span>
+    <span><strong style="color:var(--blue);">${running}</strong> running</span>
+    <span><strong style="color:var(--red);">${failed}</strong> failed</span>
+  </div>`;
+  return html;
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  render();
+}
+
+function setSort(key) { if (sortKey === key) sortDesc = !sortDesc; else { sortKey = key; sortDesc = true; } render(); }
+function fmtDuration(seconds) { if (!seconds || seconds < 0) return '-'; const m = Math.floor(seconds / 60); const s = Math.floor(seconds % 60); return m > 0 ? `${m}m ${s}s` : `${s}s`; }
+function esc(str) { if (str == null) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', warn: '⚠', info: 'ℹ' };
+  const t = document.createElement('div');
+  t.className = 'toast ' + esc(type);
+  t.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-msg">${esc(msg)}</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
+  el('toastContainer').appendChild(t);
+  setTimeout(() => { if (t.parentElement) t.remove(); }, 3000);
+}
+
+init();
+</script>
+</body>
+</html>
