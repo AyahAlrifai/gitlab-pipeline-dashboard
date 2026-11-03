@@ -255,7 +255,7 @@
     <div style="display:flex;align-items:center;gap:12px;">
       <h1>GitLab Pipeline Dashboard</h1>
       <span style="color:var(--fg-muted);font-size:12px;border-left:1px solid var(--border);padding-left:12px;white-space:nowrap;">
-        by <strong style="color:var(--accent);">Eng. Ayah Refai</strong> · ayah.refai@digitinary.com
+        by <strong style="color:var(--accent);">Eng. Ayah Refai</strong> · refayayah@gmail.com
       </span>
     </div>
     <div class="header-actions">
@@ -276,9 +276,9 @@
       </div>
     </div>
     <label>Projects (one per line: namespace/project or numeric ID)</label>
-    <textarea id="projectsList" rows="8" placeholder="arena/arena-demo-microservice
+    <textarea id="projectsList" rows="8" placeholder="ayah/ayah-demo-microservice
 561
-arena/arena-edge-ms"></textarea>
+ayah/ayah-edge-ms"></textarea>
     <div style="display:flex; gap:10px;">
       <button class="btn primary" onclick="saveAndLoad()">Save & Load</button>
       <button class="btn" onclick="resetProjects()">Reset Defaults</button>
@@ -341,7 +341,7 @@ arena/arena-edge-ms"></textarea>
           <li>Click <strong>⚙ Settings</strong> in the top right.</li>
           <li>Enter your <code>GitLab Base URL</code> (e.g. <code>https://gitlab.digi.internal</code>).</li>
           <li>Enter a <code>Personal Access Token</code> with <strong>api</strong> scope.</li>
-          <li>The project list is pre-filled with all Arena services. Click <strong>Save & Load</strong>.</li>
+          <li>The project list is empty, fill it with your services. Click <strong>Save & Load</strong>.</li>
         </ul>
 
         <h4>Tabs</h4>
@@ -385,12 +385,7 @@ arena/arena-edge-ms"></textarea>
 
 <script>
 const DEFAULT_PROJECTS = [
-  "arena/arena-admin-microservice", "arena/arena-artificial-intelligence-ms", "arena/arena-audit-trail-microservice", "arena/arena-c360-microservice", "arena/arena-custom-workflows", "arena/arena-customer-complaints-ms",
-  "arena/arena-customer-transactions-ms", "arena/arena-demo-microservice", "arena/arena-digitinary-lead-ms", "arena/arena-edge-ms", "arena/arena-human-resources-ms", "arena/arena-keycloak-spis", "arena/arena-knowledge-base-ms",
-  "arena/arena-license-management-ms", "arena/arena-loan-microservice", "arena/arena-notifications-ms", "arena/arena-reporting-ms", "arena/arena-service-request-management-ms", "arena/arena-trade-finance-ms",
-  "arena/arena-user-management-ms", "arena/arena-workflow-management-ms", "digi-libs/digi-bom", "digi-libs/digi-common", "digi-libs/digi-encryption-core", "digi-libs/digi-encryption-spring-boot-starter",
-  "digi-libs/digi-enterprise-adapter", "digi-libs/digi-license-core", "digi-libs/digi-license-generator", "digi-libs/digi-license-spring-boot-starter", "digi-libs/digi-logger", "digi-libs/digi-sandbox-microservice",
-  "arena/ebp-common", "arena/ebp-parent", "arena/keycloak", "arena/shamil-ai-workspace"
+
 ];
 
 let pipelines = [], errors = [], sortKey = 'createdAt', sortDesc = true, autoRefreshTimer = null, isLoading = false, corsBlocked = false;
